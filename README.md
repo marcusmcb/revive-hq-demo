@@ -203,12 +203,14 @@ This repo is an npm workspaces monorepo. If your Vercel project **Root Directory
 
 - `npm error No workspaces found: --workspace=apps/web`
 
-To make this work reliably, this repo includes [apps/web/vercel.json](apps/web/vercel.json) which tells Vercel to run install/build against the repo root while still outputting `.next` from `apps/web`.
+To make this work reliably, this repo includes [apps/web/vercel.json](apps/web/vercel.json) which runs install/build against the repo root (via `cd ../..`) while still outputting `.next` from `apps/web`.
 
 In Vercel project settings:
 
 - **Root Directory**: `apps/web`
 - **Node.js Version**: `20.x`
+- **Build Command**: `npm run build` (recommended). If you keep a workspace-based command, use `cd ../.. && npm -w apps/web run build`.
+- **Install Command**: `cd ../.. && npm install` (or leave default if you are not using workspaces)
 - **Environment**: set `NEXT_PUBLIC_API_BASE_URL` to your deployed API URL (e.g. Heroku)
 
 ### API on Heroku (monorepo)
