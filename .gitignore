@@ -6,6 +6,8 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+/json
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
@@ -21,6 +23,10 @@ lib-cov
 # Coverage directory used by tools like istanbul
 coverage
 *.lcov
+
+# Playwright artifacts
+playwright-report/
+test-results/
 
 # nyc test coverage
 .nyc_output
@@ -69,6 +75,9 @@ web_modules/
 .env
 .env.*
 !.env.example
+
+# Local Firebase service account keys (DO NOT COMMIT)
+json/
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
