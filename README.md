@@ -197,6 +197,20 @@ This repo can be deployed as:
 - **Web (Next.js)** → Vercel
 - **API (Express)** → Heroku
 
+### Web on Vercel (monorepo)
+
+This repo is an npm workspaces monorepo. If your Vercel project **Root Directory** is set to `apps/web`, `npm` won’t see the workspace root by default, which can cause errors like:
+
+- `npm error No workspaces found: --workspace=apps/web`
+
+To make this work reliably, this repo includes [apps/web/vercel.json](apps/web/vercel.json) which tells Vercel to run install/build against the repo root while still outputting `.next` from `apps/web`.
+
+In Vercel project settings:
+
+- **Root Directory**: `apps/web`
+- **Node.js Version**: `20.x`
+- **Environment**: set `NEXT_PUBLIC_API_BASE_URL` to your deployed API URL (e.g. Heroku)
+
 ### API on Heroku (monorepo)
 
 This repo includes a root [Procfile](Procfile) and a `heroku-postbuild` script so Heroku will:
