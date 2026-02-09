@@ -149,6 +149,8 @@ Notes:
 	- Address mode: `{ "mode": "address", "address": "123 Main St, Austin, TX 78701" }`
 	- City mode: `{ "mode": "city", "city": "Austin", "state": "TX", "limit": 100 }`
 
+	### Unused but left in place to allow future development
+
 - `GET /v1/searches`
 	- lists the most recent saved searches (metadata only).
 	- supports “read” behavior (recent searches/history) without loading full result sets.
@@ -181,7 +183,7 @@ Optional cache pointer (used to reuse identical recent searches without requirin
 	- `searchId`: most recent search ID for that key
 	- `updatedAt`: timestamp
 
-Note: property results are stored in the `properties` subcollection (not as fields on the search document). In the Firebase console you’ll see them by opening a search document and then viewing its subcollections. If a search returns 0 results, there will be no property documents to display.
+Note: property results are stored in the `properties` sub-collection (not as fields on the search document). In the Firebase console you’ll see them by opening a search document and then viewing its subcollections. If a search returns 0 results, there will be no property documents to display.
 
 ## Assumptions
 
@@ -256,6 +258,14 @@ Set `NEXT_PUBLIC_API_BASE_URL` to your Heroku API URL (e.g. `https://<app>.herok
 
 - Approximately 11 hours total
 
+## Key Additions
+
+- Sort feature on property results in the UI
+- "Clear Search" feature in the UI
+- Back end testing for key workflows
+- Basic caching strategy for search results
+- Light/Dark mode usability feature
+
 ## Key Development Considerations
 
 ### Data Resource:
@@ -285,8 +295,8 @@ Although Next.js can serve API routes, I kept the Express API in a separate `app
 
 This also keeps provider keys and Firebase Admin credentials strictly on the server side and makes API behavior straightforward to test in isolation.
 
-### UI & Usability
+### Usability & Saved Search feature
 
-I added the property results "sort" and "clear search" features as simply usability improvements.  
+I added the property results "sort" and "clear search" features along with the light/dark mode toggle as simple usability improvements.  
 
 While I did scaffold the necessary API endpoints on the back end, I did not implement a "recent searches" feature in the UI that would allow users to view and delete previous property searches in the UI.  
