@@ -285,3 +285,8 @@ Although Next.js can serve API routes, I kept the Express API in a separate `app
 
 This also keeps provider keys and Firebase Admin credentials strictly on the server side and makes API behavior straightforward to test in isolation.
 
+### UI & Usability
+
+I added the property results "sort" and "clear search" features as simply usability improvements.  
+
+While I did scaffold the necessary API endpoints on the back end, I did not implement a "recent searches" feature in the UI that would allow users to view and delete previous property searches in the UI.  

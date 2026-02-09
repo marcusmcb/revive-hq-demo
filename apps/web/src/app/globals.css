@@ -4,9 +4,12 @@
   --foreground: #111111;
 }
 
-/* Force a light UI to match the Revive site aesthetic. */
 html {
   color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 html,

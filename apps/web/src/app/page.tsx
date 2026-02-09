@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 import { runSearch } from "../lib/api";
 import type { PropertyListing, SearchMode } from "../lib/types";
+import ThemeToggle from "./ThemeToggle";
 
 const PAGE_SIZE = 10;
 
@@ -248,7 +249,10 @@ export default function Home() {
       <main className={styles.main}>
         <div className={styles.content}>
           <div className={styles.header}>
-            <h1 className={styles.title}>Property Search</h1>
+            <div className={styles.titleRow}>
+              <h1 className={styles.title}>Property Search</h1>
+              <ThemeToggle className={`${styles.secondaryButton} ${styles.themeToggle}`} />
+            </div>
             <p className={styles.subtitle}>
               Search active listings by address or by city and state.
             </p>
