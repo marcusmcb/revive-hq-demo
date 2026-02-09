@@ -17,26 +17,3 @@ export interface SearchResponse {
   searchId: string;
   properties: PropertyListing[];
 }
-
-export interface RecentSearch {
-  id: string;
-  mode: SearchMode;
-  query: string;
-  source?: string;
-  createdAt?: string;
-  retrievedAt?: string;
-}
-
-export interface RecentSearchesResponse {
-  searches: RecentSearch[];
-}
-
-export interface SearchDetail {
-  id: string;
-  mode: SearchMode;
-  query: string;
-  source?: string;
-  createdAt?: string;
-  retrievedAt?: string;
-  properties: PropertyListing[];
-}

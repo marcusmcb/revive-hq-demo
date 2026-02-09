@@ -1,4 +1,4 @@
-import type { RecentSearchesResponse, SearchDetail, SearchResponse } from './types';
+import type { SearchResponse } from './types';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000').replace(/\/+$/, '');
 
@@ -41,38 +41,4 @@ export async function runSearch(body: unknown): Promise<SearchResponse> {
   }
 
   return (await res.json()) as SearchResponse;
-}
-
-export async function listRecentSearches(): Promise<RecentSearchesResponse> {
-  const res = await fetch(`${API_BASE_URL}/v1/searches`, {
-    method: 'GET'
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to load recent searches (${res.status})`);
-  }
-
-  return (await res.json()) as RecentSearchesResponse;
-}
-
-export async function getSearch(searchId: string): Promise<SearchDetail> {
-  const res = await fetch(`${API_BASE_URL}/v1/searches/${encodeURIComponent(searchId)}`, {
-    method: 'GET'
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to load search (${res.status})`);
-  }
-
-  return (await res.json()) as SearchDetail;
-}
-
-export async function deleteSearch(searchId: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/v1/searches/${encodeURIComponent(searchId)}`, {
-    method: 'DELETE'
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to delete search (${res.status})`);
-  }
 }

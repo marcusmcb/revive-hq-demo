@@ -188,14 +188,19 @@ Note: property results are stored in the `properties` subcollection (not as fiel
 - Photos are stored as **URLs** in Firestore (not downloaded/rehydrated).
 - Address matching is “best effort” via the provider’s keyword search.
 
-## Known limitations / next improvements
+## Known limitations & next improvements
 
-- Simple caching is implemented server-side by reusing identical recent searches (could be expanded with a dedicated TTL/index strategy and cache invalidation).
-- No rate limiting or request queuing.
-- Minimal UI styling; no image optimization pipeline.
-- Repliers sample data coverage is limited. If a city/state search returns 0 results, it's likely not included in the sample dataset provided from their API.
+- Simple caching is implemented server-side by reusing identical recent searches.  This could be expanded with a dedicated TTL/index strategy and cache invalidation.
+
+- No rate limiting or request queuing. This could be implemented with an IP/user-based token bucket (e.g. rate-limit middleware) plus optional provider-side backpressure via a small in-memory/Redis queue.
+
+- No image optimization pipeline (currently stored as URLs). This could be implemented by proxying images through the web app/API and generating optimized thumbnails (or using Next.js Image) with caching and size limits.
+
+- Expanded data resource for additional market coverage and information. This could be implemented by supporting multiple listing sources (or richer provider endpoints) behind a common interface, plus adding pagination and additional filters.
 
 ## Known Search Locations with results
+
+Repliers sample data coverage is limited. If a city/state search returns 0 results, it's likely not included in the sample dataset provided from their API.
 
 For the purpose of testing the functionality of this project, the following city/state searches should yield results in the UI:
 
@@ -246,4 +251,37 @@ On Heroku, set (at minimum) these Config Vars:
 ### Web on Vercel
 
 Set `NEXT_PUBLIC_API_BASE_URL` to your Heroku API URL (e.g. `https://<app>.herokuapp.com`).
+
+## Development Time
+
+- Approximately 10 hours total
+
+## Key Development Considerations
+
+### Data Resource:
+
+In researching real estate API resources for this demo, I encountered a number of options and discovered two in particular that were of note:
+
+* SimplyRETS
+* Repliers API
+
+Others that I reviewed (RapidAPI, Reatlor.com, etc) that utilize live MLS data typically require a verified account with a paid enterprise plan, so for the purposes of this demo I proto-typed solutions using both of the APIs listed above.
+
+The SimplyRETS implementation worked without issue but the sample data provided with a developer API key was extremely limited in its search options for this demo.
+
+After some additional research, the Repliers API resource provided a much broader sample data set to demonstrate the search abilities required in this demo.
+
+### Monorepo vs separate stand-alone repos:
+
+For the purposes of this demo and to keep the overall directory structure unified, I developed this project as a monorepo.  
+
+This also makes it easier to evolve the API contract and UI together (single PR/commit) and keep tooling consistent across the stack (Node/TypeScript versions, linting, and shared test scripts).
+
+For a data-driven project where UI and back end considerations evolve at different paces, separating those considerations into separate repos would (typically) be a better development path.
+
+### Separate web + API apps (vs Next.js API routes)
+
+Although Next.js can serve API routes, I kept the Express API in a separate `apps/api` workspace from the Next.js client in `apps/web` as requested in the project description and to preserve a clean separation of concerns, making it easy to deploy/scale the API section independently. 
+
+This also keeps provider keys and Firebase Admin credentials strictly on the server side and makes API behavior straightforward to test in isolation.
 
