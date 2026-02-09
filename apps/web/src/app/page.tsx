@@ -288,7 +288,6 @@ export default function Home() {
                     onClick={() => {
                       if (mode === "city") return;
                       setMode("city");
-                      resetResults();
                     }}
                   >
                     City/state
@@ -304,7 +303,6 @@ export default function Home() {
                     onClick={() => {
                       if (mode === "address") return;
                       setMode("address");
-                      resetResults();
                     }}
                   >
                     Single address
