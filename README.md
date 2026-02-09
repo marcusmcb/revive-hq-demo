@@ -212,7 +212,7 @@ For the purpose of testing the functionality of this project, the following city
 
 ## Deployment (demo)
 
-This repo can be deployed as:
+This project is currently deployed as follows:
 
 - **Web (Next.js)** → Vercel
 - **API (Express)** → Heroku
@@ -254,7 +254,7 @@ Set `NEXT_PUBLIC_API_BASE_URL` to your Heroku API URL (e.g. `https://<app>.herok
 
 ## Development Time
 
-- Approximately 10 hours total
+- Approximately 11 hours total
 
 ## Key Development Considerations
 
