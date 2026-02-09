@@ -1,13 +1,21 @@
 # Revive HQ – Real Estate Search (Assessment)
 
-Full-stack app that searches active property listings by **single address** or **city**, displays results (including photos), and persists searches + results to **Firestore**.
+This is a full-stack web application that searches active property listings by **single address** or **city**, displays the available results (including photos), and persists user searches + results to **Firestore**.
 
 ## Tech stack
 
-- Frontend: Next.js (React + TypeScript)
+- Frontend: Next.js (React + TypeScript + CSS)
 - Backend: Node.js + Express (TypeScript)
 - Database: Firebase Admin SDK → Firestore
 - Listing data source: Repliers API
+- Deployment: Vercel + Heroku
+
+## Technology choices (why)
+
+- **Next.js (App Router):** fast iteration, simple routing, and a production-ready build/deploy story for a small demo UI.
+- **Express API:** lightweight HTTP layer, easy to test with Supertest, and keeps provider + persistence logic off the client.
+- **Firestore (Firebase Admin SDK):** quick schema-less persistence for searches + results without managing a DB server.
+- **Repliers API:** provides active listing data with photos and supports sale-only filtering.
 
 ## Repo structure
 
@@ -128,30 +136,30 @@ Notes:
 ## API endpoints
 
 - `GET /health`
-	- What: simple liveness check for the API process.
-	- Why: quick way to verify the server is up and responding.
+	- simple liveness check for the API process.
+	- quick way to verify the server is up and responding.
 
 - `GET /health/firestore`
-	- What: checks that the API can reach Firestore using the configured credentials.
-	- Why: helps diagnose Firebase credential/project issues separately from search/provider issues.
+	- checks that the API can reach Firestore using the configured credentials.
+	- helps diagnose Firebase credential/project issues separately from search/provider issues.
 
 - `POST /v1/search`
-	- What: runs a provider search (address or city/state), returns the results, and persists the search + results to Firestore.
-	- Why: this is the primary “create” workflow for the app.
+	- runs a provider search (address or city/state), returns the results, and persists the search + results to Firestore.
+	- this is the primary “create” workflow for the app.
 	- Address mode: `{ "mode": "address", "address": "123 Main St, Austin, TX 78701" }`
 	- City mode: `{ "mode": "city", "city": "Austin", "state": "TX", "limit": 100 }`
 
 - `GET /v1/searches`
-	- What: lists the most recent saved searches (metadata only).
-	- Why: supports “read” behavior (recent searches/history) without loading full result sets.
+	- lists the most recent saved searches (metadata only).
+	- supports “read” behavior (recent searches/history) without loading full result sets.
 
 - `GET /v1/searches/:searchId`
-	- What: returns a saved search plus its persisted property results.
-	- Why: verifies persistence and allows retrieving a past search in a single request.
+	- returns a saved search plus its persisted property results.
+	- verifies persistence and allows retrieving a past search in a single request.
 
 - `DELETE /v1/searches/:searchId`
-	- What: deletes a saved search and its persisted property documents.
-	- Why: provides basic cleanup and completes minimal CRUD support.
+	- deletes a saved search and its persisted property documents.
+	- provides basic cleanup and completes minimal CRUD support.
 
 ## Firestore schema
 
@@ -175,14 +183,14 @@ Note: property results are stored in the `properties` subcollection (not as fiel
 
 ## Known limitations / next improvements
 
-- No caching of duplicate searches (could reuse recent results by normalized query).
+- Simple caching is implemented server-side by reusing identical recent searches (could be expanded with a dedicated TTL/index strategy and cache invalidation).
 - No rate limiting or request queuing.
 - Minimal UI styling; no image optimization pipeline.
 - Repliers sample data coverage is limited. If a city/state search returns 0 results, it's likely not included in the sample dataset provided from their API.
 
 ## Known Search Locations with results
 
-- For the purpose of testing the functionality of this project, the following city/state searches should yield results in the UI:
+For the purpose of testing the functionality of this project, the following city/state searches should yield results in the UI:
 
 * Denver, CO
 * Nashville, TN

@@ -14,6 +14,7 @@ function omitUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
 export async function createSearchWithResults(params: {
   mode: SearchMode;
   query: string;
+  queryKey?: string;
   source: ListingsSource;
   properties: PropertyListing[];
 }): Promise<{ searchId: string }>{
@@ -28,6 +29,7 @@ export async function createSearchWithResults(params: {
   batch.set(searchRef, {
     mode: params.mode,
     query: params.query,
+    ...(params.queryKey ? { queryKey: params.queryKey } : {}),
     source: params.source,
     resultCount: params.properties.length,
     createdAt: now,
@@ -45,6 +47,36 @@ export async function createSearchWithResults(params: {
 
   await batch.commit();
   return { searchId };
+}
+
+export async function findRecentSearchByQueryKey(params: {
+  mode: SearchMode;
+  queryKey: string;
+  maxAgeMs: number;
+}): Promise<{ searchId: string; properties: PropertyListing[] } | null> {
+  const db = getFirestore();
+
+  const snap = await db
+    .collection('searches')
+    .where('mode', '==', params.mode)
+    .where('queryKey', '==', params.queryKey)
+    .orderBy('createdAt', 'desc')
+    .limit(1)
+    .get();
+
+  const doc = snap.docs[0];
+  if (!doc) return null;
+
+  const createdAt = doc.get('createdAt') as admin.firestore.Timestamp | undefined;
+  const createdAtMs = createdAt?.toMillis?.();
+  if (typeof createdAtMs !== 'number') return null;
+
+  const nowMs = Date.now();
+  if (nowMs - createdAtMs > params.maxAgeMs) return null;
+
+  const propertiesSnap = await doc.ref.collection('properties').get();
+  const properties = propertiesSnap.docs.map((d) => d.data() as PropertyListing);
+  return { searchId: doc.id, properties };
 }
 
 export async function getSearch(searchId: string) {

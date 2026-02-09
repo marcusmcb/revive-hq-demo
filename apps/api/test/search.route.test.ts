@@ -15,6 +15,7 @@ vi.mock('../src/providers/repliers.js', () => {
 vi.mock('../src/repositories/searchRepository.js', () => {
   return {
     createSearchWithResults: vi.fn(async () => ({ searchId: 'search_test_1' })),
+    findRecentSearchByQueryKey: vi.fn(async () => null),
     deleteSearch: vi.fn(async () => undefined),
     getSearch: vi.fn(async () => null),
     listRecentSearches: vi.fn(async () => [])
@@ -23,6 +24,7 @@ vi.mock('../src/repositories/searchRepository.js', () => {
 
 import { createApp } from '../src/app.js';
 import { searchByAddress, searchByCity } from '../src/providers/repliers.js';
+import { createSearchWithResults, findRecentSearchByQueryKey } from '../src/repositories/searchRepository.js';
 
 const app = createApp();
 
@@ -57,6 +59,42 @@ describe('POST /v1/search', () => {
     expect(Array.isArray(res.body.properties)).toBe(true);
     expect(res.body.properties).toHaveLength(1);
     expect(mockedCity).toHaveBeenCalledWith('Nashville', 'TN', 25);
+  });
+
+  it('city mode: returns cached results when a recent identical search exists', async () => {
+    const mockedCity = vi.mocked(searchByCity);
+    mockedCity.mockImplementationOnce(async () => {
+      throw new Error('provider should not be called on cache hit');
+    });
+
+    vi.mocked(findRecentSearchByQueryKey).mockResolvedValueOnce({
+      searchId: 'search_cached_1',
+      properties: [
+        {
+          source: 'repliers',
+          sourceId: 'cached_1',
+          address: '1 Cached St, Nashville, TN 37201',
+          price: 123,
+          beds: 1,
+          baths: 1,
+          sqft: 500,
+          photos: []
+        }
+      ]
+    });
+
+    const res = await request(app)
+      .post('/v1/search')
+      .send({ mode: 'city', city: 'Nashville', state: 'TN', limit: 25 });
+
+    expect(res.status).toBe(200);
+    expect(res.headers['x-cache']).toBe('HIT');
+    expect(res.body.searchId).toBe('search_cached_1');
+    expect(res.body.cached).toBe(true);
+    expect(Array.isArray(res.body.properties)).toBe(true);
+    expect(res.body.properties).toHaveLength(1);
+    expect(res.body.properties[0].sourceId).toBe('cached_1');
+    expect(vi.mocked(createSearchWithResults)).not.toHaveBeenCalled();
   });
 
   it('address mode: returns 404 when not found', async () => {

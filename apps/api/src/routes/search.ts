@@ -1,9 +1,23 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { searchByAddress as repliersSearchByAddress, searchByCity as repliersSearchByCity } from '../providers/repliers.js';
-import { createSearchWithResults, deleteSearch, getSearch, listRecentSearches } from '../repositories/searchRepository.js';
+import { createSearchWithResults, deleteSearch, findRecentSearchByQueryKey, getSearch, listRecentSearches } from '../repositories/searchRepository.js';
 
 const router = Router();
+
+const RECENT_SEARCH_CACHE_MAX_AGE_MS = 15 * 60 * 1000;
+
+function normalizeWhitespace(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+function makeAddressQueryKey(address: string): string {
+  return `address:${normalizeWhitespace(address).toLowerCase()}`;
+}
+
+function makeCityQueryKey(city: string, state: string, limit: number): string {
+  return `city:${normalizeWhitespace(city).toLowerCase()}|state:${normalizeWhitespace(state).toUpperCase()}|limit:${limit}`;
+}
 
 function tsToIso(value: any): string | undefined {
   if (!value) return undefined;
@@ -36,6 +50,17 @@ router.post('/v1/search', async (req, res) => {
 
   try {
     if (parsed.data.mode === 'address') {
+      const queryKey = makeAddressQueryKey(parsed.data.address);
+      const cached = await findRecentSearchByQueryKey({
+        mode: 'address',
+        queryKey,
+        maxAgeMs: RECENT_SEARCH_CACHE_MAX_AGE_MS
+      });
+      if (cached) {
+        res.setHeader('X-Cache', 'HIT');
+        return res.json({ searchId: cached.searchId, properties: cached.properties, cached: true });
+      }
+
       const result = await repliersSearchByAddress(parsed.data.address);
       if (!result) {
         return res.status(404).json({ error: 'NOT_FOUND', message: 'Address not found' });
@@ -44,6 +69,7 @@ router.post('/v1/search', async (req, res) => {
       const { searchId } = await createSearchWithResults({
         mode: 'address',
         query: parsed.data.address,
+        queryKey,
         source: 'repliers',
         properties: [result]
       });
@@ -51,10 +77,23 @@ router.post('/v1/search', async (req, res) => {
       return res.json({ searchId, properties: [result] });
     }
 
-    const results = await repliersSearchByCity(parsed.data.city, parsed.data.state, parsed.data.limit ?? 100);
+    const limit = parsed.data.limit ?? 100;
+    const queryKey = makeCityQueryKey(parsed.data.city, parsed.data.state, limit);
+    const cached = await findRecentSearchByQueryKey({
+      mode: 'city',
+      queryKey,
+      maxAgeMs: RECENT_SEARCH_CACHE_MAX_AGE_MS
+    });
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      return res.json({ searchId: cached.searchId, properties: cached.properties, cached: true });
+    }
+
+    const results = await repliersSearchByCity(parsed.data.city, parsed.data.state, limit);
     const { searchId } = await createSearchWithResults({
       mode: 'city',
       query: `${parsed.data.city}, ${parsed.data.state}`,
+      queryKey,
       source: 'repliers',
       properties: results
     });

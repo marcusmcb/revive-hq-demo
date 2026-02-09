@@ -7,12 +7,27 @@ import { getFirestore } from './firebase.js';
 export function createApp() {
   const env = getEnv();
 
+  const normalizeOrigin = (value: string) => value.trim().replace(/\/+$/, '');
+  const allowedOrigins = (env.CORS_ORIGIN ? env.CORS_ORIGIN.split(',') : [])
+    .map((o) => o.trim())
+    .filter(Boolean)
+    .map(normalizeOrigin);
+
   const app = express();
   app.use(express.json({ limit: '2mb' }));
 
   app.use(
     cors({
-      origin: env.CORS_ORIGIN ?? true
+      origin: (origin, callback) => {
+        // Non-browser requests (curl/health checks) may omit Origin.
+        if (!origin) return callback(null, true);
+
+        // If not configured, allow all origins (demo-friendly default).
+        if (allowedOrigins.length === 0) return callback(null, true);
+
+        const normalized = normalizeOrigin(origin);
+        return callback(null, allowedOrigins.includes(normalized));
+      }
     })
   );
 
