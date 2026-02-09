@@ -166,6 +166,7 @@ Notes:
 - `searches/{searchId}`
 	- `mode`: `address | city`
 	- `query`: original user query
+	- `queryKey`: normalized query key (used for recent-search reuse)
 	- `source`: `repliers`
 	- `resultCount`: number of properties returned
 	- `createdAt`, `retrievedAt`: timestamps
@@ -173,6 +174,12 @@ Notes:
 	- `address`, `price`, `beds`, `baths`, `sqft`
 	- `photos`: `string[]`
 	- `retrievedAt`
+
+Optional cache pointer (used to reuse identical recent searches without requiring composite Firestore indexes):
+
+- `searchCache/{mode}:{queryKey}`
+	- `searchId`: most recent search ID for that key
+	- `updatedAt`: timestamp
 
 Note: property results are stored in the `properties` subcollection (not as fields on the search document). In the Firebase console you’ll see them by opening a search document and then viewing its subcollections. If a search returns 0 results, there will be no property documents to display.
 

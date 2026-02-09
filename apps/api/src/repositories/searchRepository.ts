@@ -36,6 +36,24 @@ export async function createSearchWithResults(params: {
     retrievedAt: now
   });
 
+  if (params.queryKey) {
+    const cacheKey = `${params.mode}:${params.queryKey}`;
+    const cacheRef = db.collection('searchCache').doc(cacheKey);
+    batch.set(
+      cacheRef,
+      {
+        mode: params.mode,
+        query: params.query,
+        queryKey: params.queryKey,
+        source: params.source,
+        searchId,
+        resultCount: params.properties.length,
+        updatedAt: now
+      },
+      { merge: true }
+    );
+  }
+
   const propsCol = searchRef.collection('properties');
   for (const property of params.properties) {
     const propRef = propsCol.doc(property.sourceId);
@@ -55,28 +73,31 @@ export async function findRecentSearchByQueryKey(params: {
   maxAgeMs: number;
 }): Promise<{ searchId: string; properties: PropertyListing[] } | null> {
   const db = getFirestore();
+  const cacheKey = `${params.mode}:${params.queryKey}`;
+  const cacheRef = db.collection('searchCache').doc(cacheKey);
 
-  const snap = await db
-    .collection('searches')
-    .where('mode', '==', params.mode)
-    .where('queryKey', '==', params.queryKey)
-    .orderBy('createdAt', 'desc')
-    .limit(1)
-    .get();
+  let cacheSnap: admin.firestore.DocumentSnapshot;
+  try {
+    cacheSnap = await cacheRef.get();
+  } catch {
+    // Best-effort cache. If Firestore lookup fails for any reason, do not block searches.
+    return null;
+  }
 
-  const doc = snap.docs[0];
-  if (!doc) return null;
-
-  const createdAt = doc.get('createdAt') as admin.firestore.Timestamp | undefined;
-  const createdAtMs = createdAt?.toMillis?.();
-  if (typeof createdAtMs !== 'number') return null;
+  if (!cacheSnap.exists) return null;
+  const updatedAt = cacheSnap.get('updatedAt') as admin.firestore.Timestamp | undefined;
+  const updatedAtMs = updatedAt?.toMillis?.();
+  if (typeof updatedAtMs !== 'number') return null;
 
   const nowMs = Date.now();
-  if (nowMs - createdAtMs > params.maxAgeMs) return null;
+  if (nowMs - updatedAtMs > params.maxAgeMs) return null;
 
-  const propertiesSnap = await doc.ref.collection('properties').get();
-  const properties = propertiesSnap.docs.map((d) => d.data() as PropertyListing);
-  return { searchId: doc.id, properties };
+  const searchId = cacheSnap.get('searchId');
+  if (typeof searchId !== 'string' || !searchId.trim()) return null;
+
+  const search = await getSearch(searchId);
+  if (!search || !Array.isArray((search as any).properties)) return null;
+  return { searchId, properties: (search as any).properties as PropertyListing[] };
 }
 
 export async function getSearch(searchId: string) {
@@ -102,6 +123,21 @@ export async function deleteSearch(searchId: string) {
   const db = getFirestore();
   const searchRef = db.collection('searches').doc(searchId);
 
+  // Read metadata first so we can clean up the cache pointer if present.
+  let cacheKey: string | null = null;
+  try {
+    const snap = await searchRef.get();
+    if (snap.exists) {
+      const mode = snap.get('mode');
+      const queryKey = snap.get('queryKey');
+      if ((mode === 'address' || mode === 'city') && typeof queryKey === 'string' && queryKey.trim()) {
+        cacheKey = `${mode}:${queryKey}`;
+      }
+    }
+  } catch {
+    // Ignore and continue delete.
+  }
+
   // Delete subcollection docs first (Firestore doesn't cascade delete).
   const propertiesSnap = await searchRef.collection('properties').get();
   const docs = propertiesSnap.docs;
@@ -119,4 +155,12 @@ export async function deleteSearch(searchId: string) {
   }
 
   await searchRef.delete();
+
+  if (cacheKey) {
+    try {
+      await db.collection('searchCache').doc(cacheKey).delete();
+    } catch {
+      // Ignore cache cleanup failures.
+    }
+  }
 }
