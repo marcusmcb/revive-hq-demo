@@ -22,6 +22,7 @@
   justify-content: center;
   font-family: var(--font-geist-sans);
   background-color: var(--background);
+  color: var(--text-primary);
 }
 
 .main {
