@@ -3,6 +3,11 @@ import admin from 'firebase-admin';
 import { getFirestore } from '../firebase.js';
 import type { ListingsSource, PropertyListing, SearchMode } from '../types.js';
 
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
+
 function omitUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
@@ -79,8 +84,13 @@ export async function findRecentSearchByQueryKey(params: {
   let cacheSnap: admin.firestore.DocumentSnapshot;
   try {
     cacheSnap = await cacheRef.get();
-  } catch {
+  } catch (err) {
     // Best-effort cache. If Firestore lookup fails for any reason, do not block searches.
+    console.warn('[cache] searchCache read failed', {
+      mode: params.mode,
+      queryKey: params.queryKey,
+      error: errorMessage(err)
+    });
     return null;
   }
 
@@ -95,7 +105,18 @@ export async function findRecentSearchByQueryKey(params: {
   const searchId = cacheSnap.get('searchId');
   if (typeof searchId !== 'string' || !searchId.trim()) return null;
 
-  const search = await getSearch(searchId);
+  let search: Awaited<ReturnType<typeof getSearch>>;
+  try {
+    search = await getSearch(searchId);
+  } catch (err) {
+    console.warn('[cache] getSearch failed', {
+      mode: params.mode,
+      queryKey: params.queryKey,
+      searchId,
+      error: errorMessage(err)
+    });
+    return null;
+  }
   if (!search || !Array.isArray((search as any).properties)) return null;
   return { searchId, properties: (search as any).properties as PropertyListing[] };
 }
@@ -134,8 +155,12 @@ export async function deleteSearch(searchId: string) {
         cacheKey = `${mode}:${queryKey}`;
       }
     }
-  } catch {
-    // Ignore and continue delete.
+  } catch (err) {
+    // Non-fatal: deletion can proceed even if we can't read cache metadata.
+    console.warn('[deleteSearch] failed to read search metadata for cache cleanup', {
+      searchId,
+      error: errorMessage(err)
+    });
   }
 
   // Delete subcollection docs first (Firestore doesn't cascade delete).
@@ -159,8 +184,13 @@ export async function deleteSearch(searchId: string) {
   if (cacheKey) {
     try {
       await db.collection('searchCache').doc(cacheKey).delete();
-    } catch {
-      // Ignore cache cleanup failures.
+    } catch (err) {
+      // Non-fatal: cache cleanup is best-effort.
+      console.warn('[deleteSearch] failed to delete cache pointer', {
+        searchId,
+        cacheKey,
+        error: errorMessage(err)
+      });
     }
   }
 }
